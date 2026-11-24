@@ -1,0 +1,19 @@
+node_modules/
+.venv/
+dist/
+# media lives on R2; only courses.csv and each course's study.sqlite + embeddings.bin are committed
+public/data/*/video/
+public/data/*/vtt/
+public/data/*/notes/
+work/
+*.mp4
+*.mkv
+
+# Local rclone credentials
+/rclone.conf
+
+bakes/
+
+# Generated local tooling files
+__pycache__/
+/fast.yaml

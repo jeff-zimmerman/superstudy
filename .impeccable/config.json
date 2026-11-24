@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/styles.css"
+        ],
+        "createdAt": "2026-11-24T15:58:58.013Z",
+        "reason": "Agent: the 4–6px seek-bar track animates within a fixed 20px hit area; the player layout stays fixed."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/styles.css"
+        ],
+        "createdAt": "2026-11-24T15:58:58.018Z",
+        "reason": "Agent: this stripe marks a search result on a PDF page and identifies the matching region without covering the text."
+      }
+    ]
+  }
+}
