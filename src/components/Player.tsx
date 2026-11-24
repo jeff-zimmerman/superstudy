@@ -286,21 +286,19 @@ export function Player({ seg }: { seg: Segment }) {
         </div>
         {secondaryUrl && !fs && (
           <div class="board-control">
-            <label>
-              Board
-              <select
-                value={boardOverride ?? "auto"}
-                disabled={secondFailed}
-                onChange={(e) => {
-                  const choice = e.currentTarget.value;
-                  setBoardOverride(choice === "auto" ? null : choice === "2" ? 2 : 1);
-                }}
-              >
-                <option value="auto">Auto</option>
-                <option value="1">Screen 1</option>
-                <option value="2">Screen 2</option>
-              </select>
-            </label>
+            <div class="board-options" role="group" aria-label="Board">
+              <button type="button" aria-pressed={boardOverride === null} disabled={secondFailed} onClick={() => setBoardOverride(null)}>Auto</button>
+              {([1, 2] as const).map((screen) => (
+                <button
+                  key={screen}
+                  type="button"
+                  aria-label={`Screen ${screen}`}
+                  aria-pressed={boardOverride === screen}
+                  disabled={secondFailed}
+                  onClick={() => setBoardOverride(screen)}
+                >{screen}</button>
+              ))}
+            </div>
             <span>{secondFailed ? "Screen 2 unavailable" : `Showing screen ${visibleBoard}`}</span>
           </div>
         )}
