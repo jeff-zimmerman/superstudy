@@ -1,4 +1,4 @@
 id,title,code,term,lectures,docs,description
 plasma,Plasma Physics,PHYS1107,2026–27 S1,14,2,"Kinetic theory, waves and confinement"
-MHD,Magnetohydrodynamics,,,9,2,Magnetic fields and conducting fluids
-fluid-dynamics,Fluid Dynamics,,,10,1,Fluid motion and balance laws
+MHD,Magnetohydrodynamics,MATH11248,2026–27 S1,9,2,Magnetic fields and conducting fluids
+fluid-dynamics,Fluid Dynamics,MATH11267,2026–27 S1,10,1,Fluid motion and balance laws
