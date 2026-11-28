@@ -72,6 +72,10 @@ python $P/extract_cues.py video/ --db study.sqlite --out vtt/
 python $P/analyze_boards.py video/ --db study.sqlite --dry-run
 python $P/analyze_boards.py video/ --db study.sqlite
 
+# For a transcript-only course, use this in place of the video import and board analysis above.
+# Pass the source VTT files by lecture number, for example Lecture1.vtt.
+# python $P/extract_cues.py --transcript-only vtt/*.vtt --db study.sqlite
+
 # 4. relevance mapping with subagents
 python $P/make_packets.py --db study.sqlite --work work/ --lectures 1 2 3
 python $P/run_mapping.py --db study.sqlite

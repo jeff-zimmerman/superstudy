@@ -7,10 +7,10 @@ import type { Course } from "./courses";
 export interface Doc { id: number; title: string; pdf_url: string; pages: { w: number; h: number }[] }
 export interface Section { id: number; doc_id: number; parent_id: number | null; level: number; ord: number; title: string; number: string; text: string; children: number[] }
 export interface Region { section_id: number; page: number; x0: number; y0: number; x1: number; y1: number }
-interface LectureRow { id: number; ord: number; title: string; video_dir: string; screen_count: 1 | 2; vtt_url: string; duration: number }
+interface LectureRow { id: number; ord: number; title: string; video_dir: string | null; screen_count: 0 | 1 | 2; vtt_url: string; duration: number }
 interface BoardInterval { lecture_id: number; time_start_ms: number; time_end_ms: number; active_screen: 1 | 2 }
 export interface Lecture extends LectureRow {
-  screenUrls: [string] | [string, string];
+  screenUrls: [] | [string] | [string, string];
   boardActivity: BoardInterval[];
 }
 export interface Cue { id: number; lecture_id: number; start: number; end: number; text: string }
@@ -83,8 +83,8 @@ export async function loadData(course: Course): Promise<Data> {
 
   const lectures = new Map<number, Lecture>();
   for (const l of rows<LectureRow>(db, "SELECT * FROM lectures ORDER BY ord")) {
-    const primary = resolveUrl(`${l.video_dir}/s1.mp4`);
-    const screenUrls: Lecture["screenUrls"] = l.screen_count === 2
+    const primary = l.video_dir && l.screen_count > 0 ? resolveUrl(`${l.video_dir}/s1.mp4`) : null;
+    const screenUrls: Lecture["screenUrls"] = !primary ? [] : l.screen_count === 2
       ? [primary, resolveUrl(`${l.video_dir}/s2.mp4`)]
       : [primary];
     lectures.set(l.id, { ...l, screenUrls, boardActivity: [], vtt_url: resolveUrl(l.vtt_url) });

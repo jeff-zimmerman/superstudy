@@ -54,13 +54,13 @@ export function sectionHits(data: Data, sectionId: number): Hit[] {
   return hits;
 }
 
-/** Text spoken in [start, end] of a lecture, for card snippets. */
+/** Join overlapping cues, optionally truncating the text for an excerpt preview. */
 export function snippet(data: Data, lecture: number, start: number, end: number, maxChars = 160) {
   const cues = data.cuesByLecture.get(lecture) ?? [];
   let text = "";
   for (const c of cues) {
-    if (c.end < start) continue;
-    if (c.start > end || text.length > maxChars) break;
+    if (c.end <= start) continue;
+    if (c.start >= end || text.length > maxChars) break;
     text += (text ? " " : "") + c.text;
   }
   return text.length > maxChars ? text.slice(0, maxChars).replace(/\s\S*$/, "") + "…" : text;

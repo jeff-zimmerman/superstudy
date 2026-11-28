@@ -6,16 +6,18 @@ upload to R2 (used as the <track> in the player).
 
 Usage:
   python extract_cues.py video/ --db study.sqlite --out vtt/
+  python extract_cues.py --transcript-only vtt/*.vtt --db study.sqlite
 Stores relative keys (video/lecture1, vtt/lecture1.vtt); the app resolves them against
 the course's media_prefix from courses.csv.
 Lecture directories are ordered by their numeric suffix.
+Transcript-only imports preserve source filenames and use the last cue for duration.
 """
 import argparse, html, json, re, sqlite3, subprocess
 from pathlib import Path
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS lectures(id INTEGER PRIMARY KEY, ord INTEGER, title TEXT,
-  video_dir TEXT NOT NULL UNIQUE, screen_count INTEGER NOT NULL CHECK (screen_count IN (1, 2)),
+  video_dir TEXT UNIQUE, screen_count INTEGER NOT NULL CHECK (screen_count IN (0, 1, 2)),
   vtt_url TEXT, duration REAL);
 CREATE TABLE IF NOT EXISTS cues(id INTEGER PRIMARY KEY, lecture_id INTEGER,
   start REAL, end REAL, text TEXT);
@@ -83,9 +85,9 @@ def clean(cues):
     return out
 
 def main():
-    """Index lecture cues from embedded subtitles or matching WebVTT files."""
+    """Index lecture cues from embedded subtitles or standalone WebVTT files."""
     ap = argparse.ArgumentParser()
-    ap.add_argument("video_root", type=Path, help="Directory containing lecture1/, lecture2/, etc.")
+    ap.add_argument("video_root", type=Path, nargs="?", help="Directory containing lecture1/, lecture2/, etc.")
     ap.add_argument("--db", default="study.sqlite")
     ap.add_argument("--out", type=Path, default=Path("vtt"))
     ap.add_argument("--stream", type=int, default=0, help="Subtitle stream index if several")
@@ -93,7 +95,41 @@ def main():
                     help="WebVTT files in numeric lecture order")
     ap.add_argument("--video-dir-prefix", default="video", help="Course-relative video directory prefix")
     ap.add_argument("--vtt-url-prefix", default="vtt/")
+    ap.add_argument("--transcript-only", type=Path, nargs="+",
+                    help="Lecture-numbered WebVTT files for a course without recordings")
     a = ap.parse_args()
+    if a.transcript_only:
+        if a.video_root or a.sidecar:
+            ap.error("--transcript-only cannot be combined with a video directory or --sidecar")
+        transcripts = {}
+        for path in a.transcript_only:
+            # Accept the existing Lecure8.vtt spelling without changing its media key.
+            match = re.fullmatch(r"lect?ure([1-9][0-9]*)\.vtt", path.name, re.IGNORECASE)
+            if not match or int(match[1]) in transcripts:
+                ap.error(f"{path}: expected a unique lecture number in the filename")
+            cues = sorted(parse_vtt(path.read_text(encoding="utf-8-sig")))
+            if not cues or any(start < 0 or start >= end for start, end, _ in cues):
+                ap.error(f"{path}: missing cues or invalid timestamps")
+            transcripts[int(match[1])] = (path, cues)
+
+        with sqlite3.connect(a.db) as db:
+            db.executescript(SCHEMA)
+            db.execute("BEGIN IMMEDIATE")
+            existing = {ord_ + 1 for ord_, in db.execute("SELECT ord FROM lectures")}
+            if duplicates := sorted(existing.intersection(transcripts)):
+                ap.error(f"lecture numbers already imported: {duplicates}")
+            for number, (path, cues) in sorted(transcripts.items()):
+                duration = max(end for _, end, _ in cues)
+                cur = db.execute(
+                    "INSERT INTO lectures(ord,title,video_dir,screen_count,vtt_url,duration) VALUES(?,?,NULL,0,?,?)",
+                    (number - 1, f"Lecture {number}", a.vtt_url_prefix + path.name, duration),
+                )
+                db.executemany("INSERT INTO cues(lecture_id,start,end,text) VALUES(?,?,?,?)",
+                               [(cur.lastrowid, start, end, body) for start, end, body in cues])
+                print(f"Lecture {number}: transcript only, {len(cues)} cues, {duration/60:.1f} min")
+        return
+    if a.video_root is None:
+        ap.error("provide a video directory or --transcript-only")
     if not a.video_root.is_dir():
         ap.error(f"{a.video_root}: video directory does not exist")
     lectures = sorted(
